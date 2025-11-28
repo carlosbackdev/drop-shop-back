@@ -11,6 +11,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,11 +26,13 @@ import java.util.List;
 public class OrderAdminController {
 
     private final OrderService orderService;
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
 
     @GetMapping("/status/{status}")
     @Operation(summary = "Listar órdenes por estado")
     public ResponseEntity<List<OrderResponse>> listOrdersByStatus(@PathVariable OrderStatus status) {
+        log.info("SOLICITUD DESDE ADMIN - Listar órdenes por estado: {}", status);
         List<Order> orders = orderService.listAllOrdersByStatus(status);
         return ResponseEntity.ok(orders.stream().map(this::toResponse).toList());
     }

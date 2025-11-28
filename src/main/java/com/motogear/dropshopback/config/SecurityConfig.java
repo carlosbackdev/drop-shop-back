@@ -5,7 +5,6 @@ import java.util.List;
 import com.motogear.dropshopback.users.components.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,7 +21,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.util.matcher.IpAddressMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -31,76 +29,89 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private static final IpAddressMatcher LOCALHOST_IPV4 = new IpAddressMatcher("127.0.0.1");
-    private static final IpAddressMatcher LOCALHOST_IPV6 = new IpAddressMatcher("::1");
-
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final UserDetailsService userDetailsService;
 
-    @Value("${api.scrap.security.url}")
+    @Value("${scraping.api.url}")
     private String apiScrapUrl;
 
-    @Value("${front.security.url}")
+    @Value("${front.url}")
     private String frontUrl;
 
     @Value("${front.admin.security.url}")
     private String frontAdminUrl;
+    @Value("${front.url.www}")
+    private String frontWwwUrl;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .cors(Customizer.withDefaults())
-            .csrf(AbstractHttpConfigurer::disable)
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin()))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/api/auth/register",
-                    "/api/auth/login",
-                    "/api/payments/success",
-                    "/api/auth/firebase-login",
-                    "/api/payments/stripe/webhook"
-                ).permitAll()
-                .requestMatchers(
-                    "/swagger-ui/**",
-                    "/v3/api-docs/**",
-                    "/swagger-ui.html",
-                    "/api-docs/**",
-                    "/h2-console/**"
-                ).permitAll()
-                .requestMatchers(
-                    "/api/products/**",
-                    "/api/categories/**",
-                    "/api/track/admin/**",
-                    "/api/review/list/**",
-                    "/api/users/name/**",
-                    "/api/orders/admin/**",
-                    "/api/products-images/get-image/**"
-                ).access((authentication, context) -> {
-                    HttpServletRequest request = context.getRequest();
-                    String path = request.getRequestURI();
+                .cors(Customizer.withDefaults())
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin()))
+                .authorizeHttpRequests(auth -> auth
+                        // Endpoints públicos
+                        .requestMatchers(
+                                "/api/auth/register",
+                                "/api/auth/login",
+                                "/api/payments/success",
+                                "/api/auth/firebase-login",
+                                "/api/payments/stripe/webhook"
+                        ).permitAll()
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/swagger-ui.html",
+                                "/api-docs/**",
+                                "/h2-console/**"
+                        ).permitAll()
 
-                    if (path.contains("/admin/")) {
-                        String remoteAddr = request.getRemoteAddr();
-                        boolean isLocalhost = "localhost".equals(request.getRemoteHost()) ||
-                                              "127.0.0.1".equals(remoteAddr) ||
-                                              "0:0:0:0:0:0:0:1".equals(remoteAddr) ||
-                                              LOCALHOST_IPV4.matches(remoteAddr) ||
-                                              LOCALHOST_IPV6.matches(remoteAddr);
-                        return new org.springframework.security.authorization.AuthorizationDecision(isLocalhost);
-                    }
+                        // Endpoints de productos, categorías, admin orders, etc.
+                        .requestMatchers(
+                                "/api/products/**",
+                                "/api/categories/**",
+                                "/api/track/admin/**",
+                                "/api/review/list/**",
+                                "/api/users.name/**",
+                                "/api/orders/admin/**",
+                                "/api/products-images/get-image/**"
+                        ).access((authentication, context) -> {
+                            HttpServletRequest request = context.getRequest();
+                            String path = request.getRequestURI();
 
-                    return new org.springframework.security.authorization.AuthorizationDecision(true);
-                })
-                .requestMatchers("/api/users/**").authenticated()
-                .requestMatchers("/api/**").access((authentication, context) -> {
-                    HttpServletRequest request = context.getRequest();
-                    String origin = request.getHeader("Origin");
-                    return new org.springframework.security.authorization.AuthorizationDecision(apiScrapUrl.equals(origin) || frontAdminUrl.equals(origin) || frontUrl.equals(origin));
-                })
-                .anyRequest().authenticated()
-            )
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                            // Si es un endpoint de admin, lo restringimos por ORIGIN del front admin
+                            if (path.contains("/admin/")) {
+                                String origin = request.getHeader("Origin");
+                                boolean allowed = frontAdminUrl.equals(origin); // ej: http://localhost:5173
+                                return new org.springframework.security.authorization.AuthorizationDecision(allowed);
+                            }
+
+                            // Resto de estos endpoints: permitidos (ya filtrará más abajo /api/** por origin si aplica)
+                            return new org.springframework.security.authorization.AuthorizationDecision(true);
+                        })
+
+                        // Endpoints de usuario requieren autenticación (JWT)
+                        .requestMatchers("/api/users/**").authenticated()
+
+                        // Regla general para todos los /api/** basada en ORIGIN
+                        .requestMatchers("/api/**").access((authentication, context) -> {
+                            HttpServletRequest request = context.getRequest();
+                            String origin = request.getHeader("Origin");
+
+                            boolean allowed =
+                                    apiScrapUrl.equals(origin) ||   // http://aliexpres-scrapping:3001
+                                            frontAdminUrl.equals(origin) || // http://localhost:5173
+                                            frontUrl.equals(origin) ||        // http://localhost:8081
+                                            frontWwwUrl.equals(origin);        // http://localhost:8080
+
+                            return new org.springframework.security.authorization.AuthorizationDecision(allowed);
+                        })
+
+                        // Cualquier otra cosa autenticada
+                        .anyRequest().authenticated()
+                )
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -126,7 +137,16 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(apiScrapUrl, frontUrl, frontAdminUrl));
+
+        // Permitimos los 3 orígenes conocidos
+        configuration.setAllowedOrigins(List.of(
+                apiScrapUrl,
+                frontUrl,
+                frontAdminUrl,
+                frontWwwUrl,
+                "http://localhost:8080"
+        ));
+
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

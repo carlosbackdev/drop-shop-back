@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -110,32 +111,33 @@ public class ProductServiceAdmin {
                     .filter(p -> p.getId() == productId)
                     .findFirst()
                     .ifPresent(p -> {
-                        if (item.has("basePrice")) {
+                        if (item.has("basePrice") ) {
+                            var priceValue = item.get("basePrice").decimalValue();
+                            BigDecimal defaultPrice = new BigDecimal("0.00");
+                            if (priceValue.compareTo(defaultPrice) <= 0) {
+                                return;
+                            }
                             p.setBasePrice(item.get("basePrice").decimalValue());
                             p.setSellPrice(configService.calculateSellPrice(p.getBasePrice()));
                         }
                         if (item.has("originalPrice")) {
+                            var priceValue = item.get("originalPrice").decimalValue();
+                            BigDecimal defaultPrice = new BigDecimal("0.00");
+                            if (priceValue.compareTo(defaultPrice) <= 0) {
+                                return;
+                            }
                             p.setOriginalPrice(item.get("originalPrice").decimalValue());
                         }
                         if (item.has("discount")) {
+                            var priceValue = item.get("discount").decimalValue();
+                            BigDecimal defaultPrice = new BigDecimal("0.00");
+                            if (priceValue.compareTo(defaultPrice) <= 0) {
+                                return;
+                            }
                             p.setDiscount(item.get("discount").asInt());
                         }
-                        var delivery = item.path("deliveryEstimateDays");
-                        if (delivery.has("min") && delivery.has("max")) {
-                            int minDay = delivery.get("min").asInt();
-                            int maxDay = delivery.get("max").asInt();
 
-                            LocalDate today = LocalDate.now();
-                            int month = today.getMonthValue();
-                            int year  = today.getYear();
 
-                            LocalDate minDate = LocalDate.of(year, month, minDay);
-                            LocalDate maxDate = LocalDate.of(year, month, maxDay);
-
-                            p.setDeliveryMinDate(minDate);
-                            p.setDeliveryMaxDate(maxDate);
-                            p.setDeliveryEstimateDays(minDay + "-" + maxDay + " días");
-                        }
                     });
         });
 
