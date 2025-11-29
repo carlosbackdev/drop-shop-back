@@ -1,6 +1,7 @@
 package com.motogear.dropshopback.shop.catalog.web;
 
 import com.motogear.dropshopback.shop.catalog.domain.Product;
+import com.motogear.dropshopback.shop.catalog.dto.ProductClientResponse;
 import com.motogear.dropshopback.shop.catalog.service.BestProductService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +18,7 @@ public class BestProductController {
     private final BestProductService bestProductService;
 
     @GetMapping("/get-products")
-    public ResponseEntity<List<Product>> getBestProducts() {
+    public ResponseEntity<List<ProductClientResponse>> getBestProducts() {
         return ResponseEntity.ok(bestProductService.getBestProduct());
     }
     @PostMapping("admin/set-products/{id}")
