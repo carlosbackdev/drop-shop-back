@@ -75,7 +75,8 @@ public class SecurityConfig {
                                 "/api/review/list/**",
                                 "/api/users.name/**",
                                 "/api/orders/admin/**",
-                                "/api/products-images/get-image/**"
+                                "/api/products-images/get-image/**",
+                                "/api/best/**"
                         ).access((authentication, context) -> {
                             HttpServletRequest request = context.getRequest();
                             String path = request.getRequestURI();
@@ -83,7 +84,7 @@ public class SecurityConfig {
                             // Si es un endpoint de admin, lo restringimos por ORIGIN del front admin
                             if (path.contains("/admin/")) {
                                 String origin = request.getHeader("Origin");
-                                boolean allowed = frontAdminUrl.equals(origin); // ej: http://localhost:5173
+                                boolean allowed = frontAdminUrl.equals(origin) || "http://localhost:8080".equals(origin);
                                 return new org.springframework.security.authorization.AuthorizationDecision(allowed);
                             }
 
