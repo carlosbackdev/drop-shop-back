@@ -73,7 +73,7 @@ public class SecurityConfig {
                                 "/api/categories/**",
                                 "/api/track/admin/**",
                                 "/api/review/list/**",
-                                "/api/users.name/**",
+                                "/api/users/name/**",
                                 "/api/orders/admin/**",
                                 "/api/products-images/get-image/**",
                                 "/api/best/**"
