@@ -77,6 +77,8 @@ public class ProductServiceAdmin {
         existing.setCurrency(request.getCurrency());
         existing.setShippingCost(request.getShippingCost());
         existing.setDeliveryEstimateDays(request.getDeliveryEstimateDays());
+        existing.setDeliveryMinDate(request.getDeliveryMinDate());
+        existing.setDeliveryMaxDate(request.getDeliveryMaxDate());
         existing.setVariants(request.getVariants());
         existing.setSellerName(request.getSellerName());
         existing.setExternalId(request.getExternalId());

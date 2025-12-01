@@ -76,7 +76,8 @@ public class SecurityConfig {
                                 "/api/users/name/**",
                                 "/api/orders/admin/**",
                                 "/api/products-images/get-image/**",
-                                "/api/best/**"
+                                "/api/best/**",
+                                "/api/home-banners/**"
                         ).access((authentication, context) -> {
                             HttpServletRequest request = context.getRequest();
                             String path = request.getRequestURI();

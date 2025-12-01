@@ -17,5 +17,8 @@ public class HomeBanner {
     private String description;
     @Column(name = "imageUrl", nullable = false)
     private String imageUrl;
-    // pensar en obtener la imagen de un servicio externo la descripcion el link y el titulo
+    @Column(name = "linkUrl", nullable = false)
+    private String linkUrl;
+    @Column(name = "link_name", nullable = false)
+    private String linkName;
 }
