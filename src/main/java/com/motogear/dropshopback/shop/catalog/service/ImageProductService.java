@@ -66,7 +66,7 @@ public class ImageProductService {
         System.out.println("Response from image deletion API: " + response.getBody());
     }
 
-    public void deleteImagesByProductId(Long productId) {
+    public void deleteImagesByPostId(Long productId) {
         String url = API_URL + "/api/banner-images/delete";
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
