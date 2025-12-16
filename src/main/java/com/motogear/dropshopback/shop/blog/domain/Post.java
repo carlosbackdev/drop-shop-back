@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.util.Date;
 
 @Entity
@@ -29,7 +30,7 @@ public class Post {
     @Column(name = "author")
     private String author;
     @Column(name = "published_at")
-    private Date date;
+    private LocalDate date;
     @Column (name = "image_url")
     private String imageUrl;
     @Column(name = "tags", nullable = false, columnDefinition = "TEXT")

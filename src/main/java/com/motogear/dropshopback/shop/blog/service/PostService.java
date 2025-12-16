@@ -13,6 +13,7 @@ public class PostService {
     private final PostRepository postRepository;
 
     public Post createPost(Post post) {
+        post.setDate(java.time.LocalDate.now());
         return postRepository.save(post);
     }
     public Post findPostById(Long id) {
