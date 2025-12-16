@@ -1,7 +1,7 @@
-package com.motogear.dropshopback.shop.banner.service;
+package com.motogear.dropshopback.shop.catalog.service;
 
-import com.motogear.dropshopback.shop.banner.domain.HomeBanner;
-import com.motogear.dropshopback.shop.banner.repository.HomeBannerRepository;
+import com.motogear.dropshopback.shop.catalog.domain.HomeBanner;
+import com.motogear.dropshopback.shop.catalog.repository.HomeBannerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;

@@ -1,10 +1,9 @@
-package com.motogear.dropshopback.shop.banner.web;
+package com.motogear.dropshopback.shop.catalog.web;
 
-import com.motogear.dropshopback.shop.banner.domain.HomeBanner;
-import com.motogear.dropshopback.shop.banner.service.HomeBannerService;
+import com.motogear.dropshopback.shop.catalog.domain.HomeBanner;
+import com.motogear.dropshopback.shop.catalog.service.HomeBannerService;
 import com.motogear.dropshopback.shop.catalog.service.ImageProductService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

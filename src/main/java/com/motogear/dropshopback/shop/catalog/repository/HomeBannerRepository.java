@@ -1,6 +1,6 @@
-package com.motogear.dropshopback.shop.banner.repository;
+package com.motogear.dropshopback.shop.catalog.repository;
 
-import com.motogear.dropshopback.shop.banner.domain.HomeBanner;
+import com.motogear.dropshopback.shop.catalog.domain.HomeBanner;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

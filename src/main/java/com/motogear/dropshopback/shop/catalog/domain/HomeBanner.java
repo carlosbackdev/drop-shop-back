@@ -1,4 +1,4 @@
-package com.motogear.dropshopback.shop.banner.domain;
+package com.motogear.dropshopback.shop.catalog.domain;
 
 import jakarta.persistence.*;
 import lombok.Data;
