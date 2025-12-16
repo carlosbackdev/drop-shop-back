@@ -82,34 +82,6 @@ DropShop es una aplicación backend desarrollada en Spring Boot que proporciona 
 
 Configura las siguientes variables de entorno antes de ejecutar la aplicación:
 
-```bash
-# Base de datos
-DB_URL=jdbc:mysql://localhost:3306/dropshop
-DB_USER=tu_usuario
-DB_PASS=tu_contraseña
-
-# API de scraping
-SCRAPING_API_URL=https://tu-api-de-scraping.com
-
-# JWT (Opcional - valores por defecto incluidos)
-jwt.secret=${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
-jwt.expiration=${JWT_EXPIRATION:86400000}  # 24 horas en milisegundos
-# Google Sign-In (habilita la validación opcional del token en backend)
-google.client.id=tu-client-id-aqui.apps.googleusercontent.com
-
-# Stripe (para pagos)
-STRIPE_API_KEY=sk_test_4eC39HqLyjWDarjtT1zdp7dc
-STRIPE_WEBHOOK_SECRET=whsec_...
-STRIPE_SUCCESS_URL=https://tu-front.com/payment/success
-STRIPE_CANCEL_URL=https://tu-front.com/payment/cancel
-```
-
-> **¿Para qué sirven estas propiedades?**
-> - `jwt.secret` y `jwt.expiration` configuran la firma y vigencia de los tokens que emite `JwtTokenProvider`.
-> - `google.client.id` es utilizado por `GoogleTokenValidator` para verificar los tokens entregados por Firebase/Google cuando quieras validar el `idToken` recibido desde el frontend.
-> - `STRIPE_API_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_SUCCESS_URL` y `STRIPE_CANCEL_URL` son utilizados para configurar la integración con Stripe.
-
-> **Nota**: Si no configuras `JWT_SECRET`, se usará una clave por defecto (NO recomendado en producción). Para generar una clave segura en Base64, puedes usar: `openssl rand -base64 64`
 
 ### Base de Datos con Docker
 
