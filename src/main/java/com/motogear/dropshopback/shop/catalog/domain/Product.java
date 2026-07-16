@@ -22,6 +22,20 @@ public class Product {
 
     @Column(name = "title")
     private String name;
+    @Column(name = "sku", unique = true, length = 80)
+    private String sku;
+    @Column(name = "slug", unique = true, length = 160)
+    private String slug;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "commercial_status", length = 32, nullable = false,
+            columnDefinition = "varchar(32) default 'DRAFT'")
+    private ProductStatus status = ProductStatus.DRAFT;
+    @Column(name = "stock_quantity", nullable = false,
+            columnDefinition = "int default 0")
+    private Integer stockQuantity = 0;
+    @Column(name = "low_stock_threshold", nullable = false,
+            columnDefinition = "int default 5")
+    private Integer lowStockThreshold = 5;
     @Column(name = "details", columnDefinition = "TEXT")
     private String details;
     @Column(name = "specifications", columnDefinition = "TEXT")
@@ -61,5 +75,20 @@ public class Product {
     @JsonIgnore
     private List<ImageProduct> images = new ArrayList<>();
 
+    @Transient
+    public boolean isPurchasable() {
+        return status == ProductStatus.AVAILABLE
+                && stockQuantity != null
+                && stockQuantity > 0
+                && sellPrice != null
+                && sellPrice.compareTo(BigDecimal.ZERO) > 0;
+    }
 
+    @Transient
+    public boolean isLowStock() {
+        return stockQuantity != null
+                && lowStockThreshold != null
+                && stockQuantity > 0
+                && stockQuantity <= lowStockThreshold;
+    }
 }

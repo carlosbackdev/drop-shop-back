@@ -4,6 +4,8 @@ import com.motogear.dropshopback.common.messages.event.OrderEvent;
 import com.motogear.dropshopback.shop.order.domain.OrderStatus;
 import com.motogear.dropshopback.shop.order.dto.UpdateOrderStatusRequest;
 import com.motogear.dropshopback.shop.order.service.OrderService;
+import com.motogear.dropshopback.shop.order.domain.Order;
+import com.motogear.dropshopback.shop.catalog.service.ProductAvailabilityService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -15,9 +17,20 @@ public class OrderStatusMessageService {
 
     private final OrderService orderService;
     private final ApplicationEventPublisher eventPublisher;
+    private final ProductAvailabilityService productAvailabilityService;
 
     @Transactional
     public void handleOrderPaid(Long orderId) {
+        Order order = orderService.getOrderForUpdate(orderId);
+        if (order.getStatus() == OrderStatus.PAID) {
+            return;
+        }
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new IllegalStateException("La orden " + orderId + " no está pendiente de pago");
+        }
+
+        productAvailabilityService.consumeStockForCartItems(order.getCartShadedIds());
+
         UpdateOrderStatusRequest updateRequest = new UpdateOrderStatusRequest();
         updateRequest.setStatus(OrderStatus.PAID);
 

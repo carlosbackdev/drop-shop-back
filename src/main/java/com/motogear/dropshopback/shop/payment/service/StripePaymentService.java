@@ -4,6 +4,7 @@ import com.motogear.dropshopback.config.StripeProperties;
 import com.motogear.dropshopback.shop.cart.repository.CartRepository;
 import com.motogear.dropshopback.shop.catalog.domain.Product;
 import com.motogear.dropshopback.shop.catalog.repository.ProductRepository;
+import com.motogear.dropshopback.shop.catalog.service.ProductAvailabilityService;
 import com.motogear.dropshopback.shop.order.dto.OrderResponse;
 import com.motogear.dropshopback.shop.shaded.domain.CartShaded;
 import com.motogear.dropshopback.shop.shaded.repository.CartShadedRepository;
@@ -30,6 +31,7 @@ public class StripePaymentService {
     private final CartRepository cartRepository;
     private final ProductRepository productRepository;
     private final CartShadedRepository cartShadedRepository;
+    private final ProductAvailabilityService productAvailabilityService;
 
     @PostConstruct
     void init() {
@@ -52,6 +54,8 @@ public class StripePaymentService {
             if (cartItems.isEmpty()) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No se encontraron productos en el carrito");
             }
+
+            productAvailabilityService.validateCartItems(cartItems);
 
             String successUrl = stripeProperties.getCheckoutSuccessUrl();
             String cancelUrl = stripeProperties.getCheckoutCancelUrl();
@@ -152,9 +156,26 @@ public class StripePaymentService {
                 )
                 .build();
     }
-    public String getMeatdata(String sessionId, String key) throws StripeException {
+    public Long getPaidOrderId(String sessionId) throws StripeException {
         Session session = Session.retrieve(sessionId);
-        return session.getMetadata().get(key);
+        return getPaidOrderId(session);
+    }
+
+    public Long getPaidOrderId(Session session) {
+        if (!"paid".equalsIgnoreCase(session.getPaymentStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "El pago todavía no está confirmado");
+        }
+
+        String orderId = session.getMetadata().get("orderId");
+        if (orderId == null || orderId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La sesión no contiene una orden válida");
+        }
+
+        try {
+            return Long.parseLong(orderId);
+        } catch (NumberFormatException exception) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La sesión contiene una orden inválida");
+        }
 
     }
 }

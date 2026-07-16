@@ -3,6 +3,7 @@ package com.motogear.dropshopback.shop.cart.service;
 import com.motogear.dropshopback.shop.cart.domain.Cart;
 import com.motogear.dropshopback.shop.cart.repository.CartRepository;
 import com.motogear.dropshopback.users.service.UserService;
+import com.motogear.dropshopback.shop.catalog.service.ProductAvailabilityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ public class CartService {
 
     private final CartRepository cartRepository;
     private final UserService userService;
+    private final ProductAvailabilityService productAvailabilityService;
 
     public List<Cart> getCartItems() {
         Long userId = userService.getCurrentUser().getId();
@@ -36,9 +38,12 @@ public class CartService {
         if (existingItem.isPresent()) {
             // Si existe, actualizar la cantidad
             Cart cartItem = existingItem.get();
-            cartItem.setQuantity(cartItem.getQuantity() + quantity);
+            int requestedTotal = cartItem.getQuantity() + quantity;
+            productAvailabilityService.requirePurchasable(productId, requestedTotal);
+            cartItem.setQuantity(requestedTotal);
             return cartRepository.save(cartItem);
         } else {
+            productAvailabilityService.requirePurchasable(productId, quantity);
             // Si no existe, crear nuevo item
             Cart newItem = Cart.builder()
                     .userId(userId)
@@ -62,6 +67,7 @@ public class CartService {
           throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"No tienes permiso para modificar este item");
         }
 
+        productAvailabilityService.requirePurchasable(cartItem.getProductId(), quantity);
         cartItem.setQuantity(quantity);
         return cartRepository.save(cartItem);
     }
@@ -105,4 +111,3 @@ public class CartService {
     }
 
 }
-

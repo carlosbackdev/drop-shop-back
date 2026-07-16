@@ -50,6 +50,12 @@ public class OrderService {
     }
 
     @Transactional
+    public Order getOrderForUpdate(Long orderId) {
+        return orderRepository.findByIdForUpdate(orderId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Orden no encontrada"));
+    }
+
+    @Transactional
     public Order getOrderById(Long orderId) {
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Orden no encontrada"));
@@ -157,4 +163,3 @@ public class OrderService {
         orderRepository.delete(order);
     }
 }
-
