@@ -4,6 +4,7 @@ import com.motogear.dropshopback.shop.shaded.domain.CartShaded;
 import com.motogear.dropshopback.shop.shaded.dto.AddToCartShadedRequest;
 import com.motogear.dropshopback.shop.shaded.repository.CartShadedRepository;
 import com.motogear.dropshopback.users.service.UserService;
+import com.motogear.dropshopback.shop.catalog.service.ProductAvailabilityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ public class CartShadedService {
 
     private final CartShadedRepository cartRepository;
     private final UserService userService;
+    private final ProductAvailabilityService productAvailabilityService;
 
     public List<CartShaded> getCartItems() {
         Long userId = userService.getCurrentUser().getId();
@@ -33,6 +35,7 @@ public class CartShadedService {
 
     @Transactional
     public CartShaded addToCart(AddToCartShadedRequest request) {
+        productAvailabilityService.requirePurchasable(request.getProductId(), request.getQuantity());
         CartShaded cartItem = CartShaded.builder()
                 .userId(userService.getCurrentUser().getId())
                 .productId(request.getProductId())
@@ -51,4 +54,3 @@ public class CartShadedService {
     }
 
 }
-

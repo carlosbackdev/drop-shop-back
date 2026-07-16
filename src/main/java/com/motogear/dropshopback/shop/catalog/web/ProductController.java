@@ -50,6 +50,14 @@ public class ProductController {
         return ResponseEntity.ok(productService.findProductClientById(id));
     }
 
+    @Operation(summary = "Obtener producto por slug",
+               description = "Retorna un producto público usando su identificador legible")
+    @GetMapping("/slug/{slug}")
+    public ResponseEntity<ProductClientResponse> getProductClientBySlug(
+            @PathVariable String slug) {
+        return ResponseEntity.ok(productService.findProductClientBySlug(slug));
+    }
+
     @Operation(summary = "Obtener productos por categoría",
                description = "Retorna una lista de productos filtrados por categoría")
     @ApiResponses(value = {

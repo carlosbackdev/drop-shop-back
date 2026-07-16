@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.motogear.dropshopback.shop.catalog.domain.Product;
 import com.motogear.dropshopback.shop.catalog.domain.ImageProduct;
+import com.motogear.dropshopback.shop.catalog.domain.ProductStatus;
 import com.motogear.dropshopback.shop.catalog.dto.ProductClientResponse;
 import com.motogear.dropshopback.shop.catalog.dto.ScriptingProductRequest;
 import com.motogear.dropshopback.config.global.ConfigService;
@@ -26,6 +27,13 @@ public class ProductMapper {
         ProductClientResponse response = new ProductClientResponse();
         response.setId(product.getId());
         response.setName(product.getName());
+        response.setSku(product.getSku());
+        response.setSlug(product.getSlug());
+        response.setStatus(product.getStatus());
+        response.setStockQuantity(product.getStockQuantity());
+        response.setLowStockThreshold(product.getLowStockThreshold());
+        response.setPurchasable(product.isPurchasable());
+        response.setLowStock(product.isLowStock());
         response.setDetails(product.getDetails());
         response.setSpecifications(product.getSpecifications());
         response.setOriginalPrice(product.getOriginalPrice());
@@ -56,6 +64,9 @@ public class ProductMapper {
     public Product toEntity(ScriptingProductRequest request) throws JsonProcessingException {
         Product product = new Product();
         product.setName(request.getTitle());
+        product.setStatus(ProductStatus.DRAFT);
+        product.setStockQuantity(0);
+        product.setLowStockThreshold(5);
         product.setDetails(request.getDetails());
 
         // Guardar specifications como JSON

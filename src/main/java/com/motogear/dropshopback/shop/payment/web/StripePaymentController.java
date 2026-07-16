@@ -1,9 +1,15 @@
 package com.motogear.dropshopback.shop.payment.web;
 
 import com.motogear.dropshopback.common.messages.service.OrderStatusMessageService;
+import com.motogear.dropshopback.config.StripeProperties;
 import com.motogear.dropshopback.shop.order.dto.OrderResponse;
 import com.motogear.dropshopback.shop.payment.service.StripePaymentService;
+import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
+import com.stripe.model.Event;
+import com.stripe.model.Session;
+import com.stripe.model.StripeObject;
+import com.stripe.net.Webhook;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,6 +33,7 @@ public class StripePaymentController {
 
     private final StripePaymentService stripePaymentService;
     private final OrderStatusMessageService orderStatusMessageService;
+    private final StripeProperties stripeProperties;
     @Value("${front.url}")
     private String frontendUrl;
 
@@ -45,8 +52,7 @@ public class StripePaymentController {
     public ResponseEntity<String> paymentSuccess(@RequestParam("session_id") String sessionId) {
         log.info("Procesando pago exitoso para sessionId: {}", sessionId);
         try {
-            String metadata = stripePaymentService.getMeatdata(sessionId, "orderId");
-            Long orderId=Long.parseLong(metadata);
+            Long orderId = stripePaymentService.getPaidOrderId(sessionId);
             //guardar el cambio de estado de la orden y enviar notificaciones
             orderStatusMessageService.handleOrderPaid(orderId);
 
@@ -54,17 +60,35 @@ public class StripePaymentController {
 
             return ResponseEntity.status(HttpStatus.SEE_OTHER)
                     .location(URI.create(successUrl))
-                    .build();        }
-        catch (StripeException e) {
+                    .build();
+        } catch (StripeException e) {
             log.error("Error recuperando sesión de Stripe {}", sessionId, e);
             return ResponseEntity.status(HttpStatus.SEE_OTHER)
-                    .location(URI.create("http://localhost:8081/error"))
+                    .location(URI.create(frontendUrl + "/?payment=error"))
                     .build();
-        } catch (NumberFormatException e) {
-            log.error("orderId inválido", e);
-            return ResponseEntity.status(HttpStatus.SEE_OTHER)
-                    .location(URI.create("http://localhost:8081/error"))
-                    .build();
+        }
+    }
+
+    @PostMapping("/stripe/webhook")
+    public ResponseEntity<Void> handleStripeWebhook(
+            @RequestBody String payload,
+            @RequestHeader("Stripe-Signature") String signature
+    ) {
+        try {
+            Event event = Webhook.constructEvent(payload, signature, stripeProperties.getWebhookSecret());
+            if ("checkout.session.completed".equals(event.getType())) {
+                StripeObject stripeObject = event.getDataObjectDeserializer().getObject()
+                        .orElseThrow(() -> new IllegalStateException("Stripe no ha incluido los datos de la sesión"));
+                if (!(stripeObject instanceof Session session)) {
+                    throw new IllegalStateException("El evento de Stripe no contiene una sesión de checkout");
+                }
+                Long orderId = stripePaymentService.getPaidOrderId(session);
+                orderStatusMessageService.handleOrderPaid(orderId);
+            }
+            return ResponseEntity.ok().build();
+        } catch (SignatureVerificationException exception) {
+            log.warn("Firma de webhook de Stripe no válida", exception);
+            return ResponseEntity.badRequest().build();
         }
     }
 

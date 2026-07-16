@@ -2,6 +2,27 @@
 
 API REST para una plataforma de e-commerce de dropshipping con integración de scraping automatizado de productos desde AliExpress y procesamiento mediante IA.
 
+## Ordenador de a bordo MotoGear: publicación y stock
+
+La ficha del producto admite `sku`, `slug`, `sellPrice`, `stockQuantity`,
+`lowStockThreshold` y un estado comercial. Los productos nuevos e importados nacen
+como `DRAFT` y no aparecen en la API pública hasta que se publican de forma
+intencionada.
+
+| Estado | Visible en la web | Compra permitida |
+|---|---:|---:|
+| `DRAFT` | No | No |
+| `COMING_SOON` | Sí | No |
+| `AVAILABLE` | Sí | Sí, con SKU, precio y stock mayor que cero |
+| `OUT_OF_STOCK` | Sí | No |
+| `ARCHIVED` | No | No |
+
+Al confirmarse el pago se bloquean las filas de pedido y producto, se descuenta
+el stock una sola vez y el producto pasa automáticamente a `OUT_OF_STOCK` al
+llegar a cero. En Stripe debe configurarse el webhook firmado
+`POST /api/payments/stripe/webhook` para el evento
+`checkout.session.completed`, además de `STRIPE_WEBHOOK_SECRET`.
+
 ## 🆕 Cambios Recientes - Sistema de Usuarios y Autenticación JWT
 
 ### ✨ Nueva Funcionalidad Implementada (v2.0)

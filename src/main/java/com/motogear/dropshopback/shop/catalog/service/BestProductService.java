@@ -25,6 +25,7 @@ public class BestProductService {
         List<BestProduct> bestProducts = bestProductRepository.findAll();
         List<Product> products = bestProducts.stream()
                 .map(BestProduct::getProduct)
+                .filter(product -> product.getStatus() != null && product.getStatus().isPubliclyVisible())
                 .collect(Collectors.toList());
         return productMapper.toClientResponseList(products);
     }
