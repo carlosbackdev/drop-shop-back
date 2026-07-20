@@ -57,6 +57,11 @@ public class ProductAvailabilityService {
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado"));
             validateAvailableStock(product, entry.getValue());
 
+            // Los productos DROP se sirven desde el proveedor y no consumen inventario local.
+            if (product.isDropshipping()) {
+                continue;
+            }
+
             int remaining = product.getStockQuantity() - entry.getValue();
             product.setStockQuantity(remaining);
             if (remaining == 0) {
@@ -81,7 +86,7 @@ public class ProductAvailabilityService {
         if (!product.isPurchasable()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "El producto no está disponible para compra");
         }
-        if (product.getStockQuantity() < requestedQuantity) {
+        if (!product.isDropshipping() && product.getStockQuantity() < requestedQuantity) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
                     "Stock insuficiente. Unidades disponibles: " + product.getStockQuantity()
