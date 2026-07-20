@@ -115,6 +115,9 @@ public class ProductServiceAdmin {
         if (product.getCurrency() == null || product.getCurrency().isBlank()) {
             product.setCurrency("EUR");
         }
+        if (product.getExternalId() != null && !product.getExternalId().isBlank()) {
+            product.setKeywords(addKeyword(product.getKeywords(), "drop"));
+        }
 
         if (product.getStockQuantity() < 0) {
             throw badRequest("El stock no puede ser negativo");
@@ -152,10 +155,20 @@ public class ProductServiceAdmin {
             if (product.getSellPrice() == null || product.getSellPrice().compareTo(BigDecimal.ZERO) <= 0) {
                 throw badRequest("Un producto disponible necesita un precio de venta mayor que cero");
             }
-            if (product.getStockQuantity() <= 0) {
+            if (!product.isDropshipping() && product.getStockQuantity() <= 0) {
                 throw badRequest("Un producto disponible necesita stock mayor que cero");
             }
         }
+    }
+
+    private String addKeyword(String keywords, String keyword) {
+        if (keywords == null || keywords.isBlank()) {
+            return keyword;
+        }
+        boolean alreadyPresent = java.util.Arrays.stream(keywords.split("[,;]"))
+                .map(String::trim)
+                .anyMatch(keyword::equalsIgnoreCase);
+        return alreadyPresent ? keywords : keywords.trim() + ", " + keyword;
     }
 
     private String toSlug(String value) {

@@ -78,17 +78,30 @@ public class Product {
     @Transient
     public boolean isPurchasable() {
         return status == ProductStatus.AVAILABLE
-                && stockQuantity != null
-                && stockQuantity > 0
+                && (isDropshipping() || (stockQuantity != null && stockQuantity > 0))
                 && sellPrice != null
                 && sellPrice.compareTo(BigDecimal.ZERO) > 0;
     }
 
     @Transient
     public boolean isLowStock() {
-        return stockQuantity != null
+        return !isDropshipping()
+                && stockQuantity != null
                 && lowStockThreshold != null
                 && stockQuantity > 0
                 && stockQuantity <= lowStockThreshold;
+    }
+
+    @Transient
+    public boolean isDropshipping() {
+        if (externalId != null && !externalId.isBlank()) {
+            return true;
+        }
+        if (keywords == null || keywords.isBlank()) {
+            return false;
+        }
+        return java.util.Arrays.stream(keywords.split("[,;]"))
+                .map(String::trim)
+                .anyMatch("drop"::equalsIgnoreCase);
     }
 }

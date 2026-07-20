@@ -18,6 +18,7 @@ public class ProductClientResponse {
     private Integer stockQuantity;
     private Integer lowStockThreshold;
     private boolean purchasable;
+    private boolean dropshipping;
     private boolean lowStock;
     private String details;
     private String specifications;

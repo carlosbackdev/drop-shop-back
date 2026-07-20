@@ -33,6 +33,7 @@ public class ProductMapper {
         response.setStockQuantity(product.getStockQuantity());
         response.setLowStockThreshold(product.getLowStockThreshold());
         response.setPurchasable(product.isPurchasable());
+        response.setDropshipping(product.isDropshipping());
         response.setLowStock(product.isLowStock());
         response.setDetails(product.getDetails());
         response.setSpecifications(product.getSpecifications());
