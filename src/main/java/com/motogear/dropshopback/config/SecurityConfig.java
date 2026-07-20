@@ -5,6 +5,7 @@ import java.util.List;
 import com.motogear.dropshopback.users.components.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,6 +28,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @RequiredArgsConstructor
+@Slf4j
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -86,7 +88,11 @@ public class SecurityConfig {
                             // Si es un endpoint de admin, lo restringimos por ORIGIN del front admin
                             if (path.contains("/admin/")) {
                                 String origin = request.getHeader("Origin");
-                                boolean allowed = frontAdminUrl.equals(origin) || "http://localhost:8080".equals(origin);
+                                boolean allowed = sameOrigin(frontAdminUrl, origin)
+                                        || sameOrigin("http://localhost:8080", origin);
+                                if (!allowed) {
+                                    log.warn("Acceso admin rechazado para origen {} en {}", origin, path);
+                                }
                                 return new org.springframework.security.authorization.AuthorizationDecision(allowed);
                             }
 
@@ -103,10 +109,10 @@ public class SecurityConfig {
                             String origin = request.getHeader("Origin");
 
                             boolean allowed =
-                                    apiScrapUrl.equals(origin) ||   // http://aliexpres-scrapping:3001
-                                            frontAdminUrl.equals(origin) || // http://localhost:5173
-                                            frontUrl.equals(origin) ||        // http://localhost:8081
-                                            frontWwwUrl.equals(origin);        // http://localhost:8080
+                                    sameOrigin(apiScrapUrl, origin) ||
+                                            sameOrigin(frontAdminUrl, origin) ||
+                                            sameOrigin(frontUrl, origin) ||
+                                            sameOrigin(frontWwwUrl, origin);
 
                             return new org.springframework.security.authorization.AuthorizationDecision(allowed);
                         })
@@ -143,10 +149,10 @@ public class SecurityConfig {
 
         // Permitimos los 3 orígenes conocidos
         configuration.setAllowedOrigins(List.of(
-                apiScrapUrl,
-                frontUrl,
-                frontAdminUrl,
-                frontWwwUrl,
+                normalizeOrigin(apiScrapUrl),
+                normalizeOrigin(frontUrl),
+                normalizeOrigin(frontAdminUrl),
+                normalizeOrigin(frontWwwUrl),
                 "http://localhost:8080"
         ));
 
@@ -157,5 +163,17 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
+    }
+
+    private boolean sameOrigin(String configuredOrigin, String requestOrigin) {
+        return requestOrigin != null && normalizeOrigin(configuredOrigin).equals(normalizeOrigin(requestOrigin));
+    }
+
+    private String normalizeOrigin(String origin) {
+        String normalized = origin == null ? "" : origin.trim();
+        while (normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        return normalized;
     }
 }

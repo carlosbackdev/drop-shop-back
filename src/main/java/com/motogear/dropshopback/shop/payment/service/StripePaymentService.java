@@ -71,16 +71,20 @@ public class StripePaymentService {
                     .putMetadata("userId", orderResponse.getUserId().toString());
 
             // Agregar cada producto como line item
+            BigDecimal calculatedSubtotal = BigDecimal.ZERO;
             for (CartShaded cartItem : cartItems) {
                 Product product = productRepository.findById(cartItem.getProductId())
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                                 "Producto no encontrado: " + cartItem.getProductId()));
 
                 paramsBuilder.addLineItem(buildLineItem(product, cartItem));
+                calculatedSubtotal = calculatedSubtotal.add(
+                        getUnitPrice(product).multiply(BigDecimal.valueOf(cartItem.getQuantity()))
+                );
             }
 
-            // Agregar gastos de envío si el total es menor a 50€
-            if (orderResponse.getTotal().compareTo(new BigDecimal("50")) < 0) {
+            // El envío se calcula con precios recuperados del servidor, nunca con el total enviado por el navegador.
+            if (calculatedSubtotal.compareTo(new BigDecimal("50")) < 0) {
                 paramsBuilder.addLineItem(buildShippingLineItem());
             }
 
@@ -97,14 +101,9 @@ public class StripePaymentService {
     }
 
     private SessionCreateParams.LineItem buildLineItem(Product product, CartShaded cartItem) {
-        // Usar el precio de venta, o base si no hay precio de venta
-        BigDecimal price = product.getSellPrice() != null ? product.getSellPrice() : product.getBasePrice();
-        if (price == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "El producto no tiene un precio válido: " + product.getId());
-        }
+        BigDecimal price = getUnitPrice(product);
         // Convertir el precio a céntimos
-        long priceInCents = price.movePointRight(2).longValue();
+        long priceInCents = price.movePointRight(2).longValueExact();
 
         // Construir el nombre del producto (incluyendo variante si existe)
         String productName = product.getName();
@@ -134,6 +133,19 @@ public class StripePaymentService {
                                 .build()
                 )
                 .build();
+    }
+
+    private BigDecimal getUnitPrice(Product product) {
+        BigDecimal price = product.getSellPrice() != null ? product.getSellPrice() : product.getBasePrice();
+        if (price == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "El producto no tiene un precio válido: " + product.getId());
+        }
+        if (price.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "El producto no tiene un precio válido: " + product.getId());
+        }
+        return price;
     }
 
     private SessionCreateParams.LineItem buildShippingLineItem() {
