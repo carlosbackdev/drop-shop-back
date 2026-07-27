@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
  * no dejaba ningún rastro estructurado en el backend.
  */
 @Entity
-@Table(name = "lead", schema = "shop")
+@Table(name = "leads", schema = "shop")
 @Data
 @Builder
 @NoArgsConstructor
