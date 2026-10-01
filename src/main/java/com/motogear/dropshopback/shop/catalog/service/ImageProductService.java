@@ -114,8 +114,10 @@ public class ImageProductService {
                 @Override
                 public void afterCommit() {
                     try {
-                        restTemplate.postForEntity(API_URL + "/api/banner-images/delete",
-                                Map.of("imageUrl", url), String.class);
+                        if (!imageProductRepository.existsByImageUrl(url)) {
+                            restTemplate.postForEntity(API_URL + "/api/banner-images/delete",
+                                    Map.of("imageUrl", url), String.class);
+                        }
                     } catch (Exception error) {
                         log.warn("No se pudo limpiar el archivo de la imagen {} tras eliminarla del producto", url, error);
                     }
