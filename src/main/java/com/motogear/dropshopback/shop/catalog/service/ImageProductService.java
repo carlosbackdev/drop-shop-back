@@ -43,7 +43,7 @@ public class ImageProductService {
 
     @Transactional
     public ImageProduct setPrimaryImage(Long productId, String imageUrl) {
-        if (imageUrl == null || !imageUrl.matches("^/uploads/products/[A-Za-z0-9._-]+$")) {
+        if (imageUrl == null || !imageUrl.matches("^/uploads/products/[0-9a-fA-F-]{36}\\.(jpg|png|webp|gif)$")) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ruta de imagen no válida");
         }
         var product = productRepository.findById(productId)
