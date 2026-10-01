@@ -25,6 +25,19 @@ public class ProductImageController {
 
     public record PrimaryImageRequest(String imageUrl) {}
 
+    @PostMapping("/admin/{productId}/images")
+    public ResponseEntity<ImageProduct> addImage(@PathVariable Long productId,
+                                                  @RequestBody PrimaryImageRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(imageProductService.addImage(productId, request.imageUrl()));
+    }
+
+    @PostMapping("/admin/{productId}/images/{imageId}/primary")
+    public ResponseEntity<ImageProduct> selectPrimaryImage(@PathVariable Long productId,
+                                                            @PathVariable Integer imageId) {
+        return ResponseEntity.ok(imageProductService.selectPrimaryImage(productId, imageId));
+    }
+
     @PostMapping("/admin/{productId}/primary")
     public ResponseEntity<ImageProduct> setPrimaryImage(@PathVariable Long productId,
                                                          @RequestBody PrimaryImageRequest request) {
