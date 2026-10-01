@@ -19,6 +19,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Comparator;
 
 @Service
 @RequiredArgsConstructor
@@ -34,36 +35,65 @@ public class ImageProductService {
 
     @Transactional(readOnly = true)
     public List<ImageProduct> findById(Long productId) {
-        return imageProductRepository.findByProductId(productId);
+        return imageProductRepository.findByProductId(productId).stream()
+                .sorted(Comparator.comparing((ImageProduct image) -> !Boolean.TRUE.equals(image.getIsPrimary()))
+                        .thenComparing(ImageProduct::getId))
+                .toList();
     }
     @Transactional(readOnly = true)
     public ImageProduct findByProductIdAndIsPrimary(Long productId) {
-        return imageProductRepository.findByProductIdAndIsPrimary(productId, true);
+        ImageProduct primary = imageProductRepository.findByProductIdAndIsPrimary(productId, true);
+        if (primary != null) return primary;
+        return findById(productId).stream().findFirst().orElse(null);
     }
 
     @Transactional
-    public ImageProduct setPrimaryImage(Long productId, String imageUrl) {
-        if (imageUrl == null || !imageUrl.matches("^/uploads/products/[0-9a-fA-F-]{36}\\.(jpg|png|webp|gif)$")) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ruta de imagen no válida");
-        }
+    public ImageProduct addImage(Long productId, String imageUrl) {
+        validateNewImageUrl(imageUrl);
         var product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado"));
         var images = imageProductRepository.findByProductId(productId);
         for (ImageProduct image : images) {
-            image.setIsPrimary(false);
+            if (imageUrl.equals(image.getImageUrl())) return image;
         }
-        ImageProduct primary = images.stream()
-                .filter(image -> imageUrl.equals(image.getImageUrl()))
+        // Las fotos importadas más antiguas conservan la portada al añadir fotos nuevas.
+        if (!images.isEmpty() && images.stream().noneMatch(image -> Boolean.TRUE.equals(image.getIsPrimary()))) {
+            images.stream().min(Comparator.comparing(ImageProduct::getId)).ifPresent(image -> {
+                image.setIsPrimary(true);
+                imageProductRepository.save(image);
+            });
+        }
+        ImageProduct image = new ImageProduct();
+        image.setProduct(product);
+        image.setImageUrl(imageUrl);
+        image.setIsPrimary(images.isEmpty());
+        return imageProductRepository.save(image);
+    }
+
+    @Transactional
+    public ImageProduct selectPrimaryImage(Long productId, Integer imageId) {
+        var images = imageProductRepository.findByProductId(productId);
+        ImageProduct selected = images.stream()
+                .filter(image -> imageId.equals(image.getId()))
                 .findFirst()
-                .orElseGet(() -> {
-                    ImageProduct image = new ImageProduct();
-                    image.setProduct(product);
-                    image.setImageUrl(imageUrl);
-                    return image;
-                });
-        primary.setIsPrimary(true);
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Imagen no encontrada en este producto"));
+        for (ImageProduct image : images) {
+            image.setIsPrimary(image == selected);
+        }
         imageProductRepository.saveAll(images);
-        return imageProductRepository.save(primary);
+        return selected;
+    }
+
+    @Transactional
+    public ImageProduct setPrimaryImage(Long productId, String imageUrl) {
+        ImageProduct image = addImage(productId, imageUrl);
+        return selectPrimaryImage(productId, image.getId());
+    }
+
+    private void validateNewImageUrl(String imageUrl) {
+        if (imageUrl == null || !imageUrl.matches("^/uploads/products/[0-9a-fA-F-]{36}\\.(jpg|png|webp|gif)$")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ruta de imagen no válida");
+        }
     }
 
     @Transactional(readOnly = true)
