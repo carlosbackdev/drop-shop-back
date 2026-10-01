@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,7 +22,14 @@ import java.util.List;
 public class ProductImageController {
 
     private final ImageProductService imageProductService;
-    private final String imageBaseUrl = "A:\\PROGRAMACION\\E-commerce\\aliexpres-scrapping\\uploads\\products";
+
+    public record PrimaryImageRequest(String imageUrl) {}
+
+    @PostMapping("/admin/{productId}/primary")
+    public ResponseEntity<ImageProduct> setPrimaryImage(@PathVariable Long productId,
+                                                         @RequestBody PrimaryImageRequest request) {
+        return ResponseEntity.ok(imageProductService.setPrimaryImage(productId, request.imageUrl()));
+    }
 
     @PostMapping("/get-image/{productId}")
     public ResponseEntity<List<ImageProduct>> getProductImage(

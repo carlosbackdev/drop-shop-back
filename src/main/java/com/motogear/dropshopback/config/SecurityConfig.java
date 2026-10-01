@@ -78,6 +78,7 @@ public class SecurityConfig {
                                 "/api/users/name/**",
                                 "/api/orders/admin/**",
                                 "/api/products-images/get-image/**",
+                                "/api/products-images/admin/**",
                                 "/api/best/**",
                                 "/api/home-banners/**",
                                 "/api/blog/**",
