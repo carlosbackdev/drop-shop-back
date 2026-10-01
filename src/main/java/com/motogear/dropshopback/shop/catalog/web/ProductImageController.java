@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -36,6 +37,12 @@ public class ProductImageController {
     public ResponseEntity<ImageProduct> selectPrimaryImage(@PathVariable Long productId,
                                                             @PathVariable Integer imageId) {
         return ResponseEntity.ok(imageProductService.selectPrimaryImage(productId, imageId));
+    }
+
+    @DeleteMapping("/admin/{productId}/images/{imageId}")
+    public ResponseEntity<Void> deleteImage(@PathVariable Long productId, @PathVariable Integer imageId) {
+        imageProductService.deleteImage(productId, imageId);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/admin/{productId}/primary")
