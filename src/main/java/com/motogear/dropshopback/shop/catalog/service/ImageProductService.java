@@ -5,6 +5,7 @@ import com.motogear.dropshopback.shop.blog.service.PostService;
 import com.motogear.dropshopback.shop.catalog.domain.HomeBanner;
 import com.motogear.dropshopback.shop.catalog.domain.ImageProduct;
 import com.motogear.dropshopback.shop.catalog.repository.ImageProductRepository;
+import com.motogear.dropshopback.shop.catalog.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -12,8 +13,10 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -22,6 +25,7 @@ import java.util.List;
 public class ImageProductService {
 
     private final ImageProductRepository imageProductRepository;
+    private final ProductRepository productRepository;
     private final HomeBannerService homeBannerService;
     private final PostService postService;
     @Value("${scraping.api.url}")
@@ -35,6 +39,31 @@ public class ImageProductService {
     @Transactional(readOnly = true)
     public ImageProduct findByProductIdAndIsPrimary(Long productId) {
         return imageProductRepository.findByProductIdAndIsPrimary(productId, true);
+    }
+
+    @Transactional
+    public ImageProduct setPrimaryImage(Long productId, String imageUrl) {
+        if (imageUrl == null || !imageUrl.matches("^/uploads/products/[A-Za-z0-9._-]+$")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ruta de imagen no válida");
+        }
+        var product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado"));
+        var images = imageProductRepository.findByProductId(productId);
+        for (ImageProduct image : images) {
+            image.setIsPrimary(false);
+        }
+        ImageProduct primary = images.stream()
+                .filter(image -> imageUrl.equals(image.getImageUrl()))
+                .findFirst()
+                .orElseGet(() -> {
+                    ImageProduct image = new ImageProduct();
+                    image.setProduct(product);
+                    image.setImageUrl(imageUrl);
+                    return image;
+                });
+        primary.setIsPrimary(true);
+        imageProductRepository.saveAll(images);
+        return imageProductRepository.save(primary);
     }
 
     @Transactional(readOnly = true)
