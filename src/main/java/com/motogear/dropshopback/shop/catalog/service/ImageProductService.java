@@ -7,6 +7,7 @@ import com.motogear.dropshopback.shop.catalog.domain.ImageProduct;
 import com.motogear.dropshopback.shop.catalog.repository.ImageProductRepository;
 import com.motogear.dropshopback.shop.catalog.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -15,14 +16,18 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Comparator;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ImageProductService {
 
     private final ImageProductRepository imageProductRepository;
@@ -82,6 +87,43 @@ public class ImageProductService {
         }
         imageProductRepository.saveAll(images);
         return selected;
+    }
+
+    @Transactional
+    public void deleteImage(Long productId, Integer imageId) {
+        var images = imageProductRepository.findByProductId(productId);
+        ImageProduct selected = images.stream()
+                .filter(image -> imageId.equals(image.getId()))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Imagen no encontrada en este producto"));
+        imageProductRepository.delete(selected);
+
+        var remaining = images.stream().filter(image -> image != selected).toList();
+        if (remaining.stream().noneMatch(image -> Boolean.TRUE.equals(image.getIsPrimary()))) {
+            remaining.stream().min(Comparator.comparing(ImageProduct::getId)).ifPresent(image -> {
+                image.setIsPrimary(true);
+                imageProductRepository.save(image);
+            });
+        }
+
+        // Solo se borra el archivo físico de las subidas propias. Las fotos importadas
+        // pueden estar referenciadas también desde las variantes del producto.
+        String url = selected.getImageUrl();
+        if (url != null && url.matches("^/uploads/products/[0-9a-fA-F-]{36}\\.(jpg|png|webp|gif)$")) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    try {
+                        if (!imageProductRepository.existsByImageUrl(url)) {
+                            restTemplate.postForEntity(API_URL + "/api/banner-images/delete",
+                                    Map.of("imageUrl", url), String.class);
+                        }
+                    } catch (Exception error) {
+                        log.warn("No se pudo limpiar el archivo de la imagen {} tras eliminarla del producto", url, error);
+                    }
+                }
+            });
+        }
     }
 
     @Transactional
